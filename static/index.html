@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Diamond Evidence Gate</title>
+  <style>
+    :root { font-family: Inter, system-ui, sans-serif; color-scheme: light dark; }
+    body { max-width: 1040px; margin: 0 auto; padding: 32px 20px 80px; }
+    h1 { margin-bottom: 6px; }
+    .sub { opacity:.76; margin-top:0; max-width:780px; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    @media (max-width:760px){ .grid{grid-template-columns:1fr;} }
+    label { display:block; margin:18px 0 6px; font-weight:650; }
+    textarea,input { width:100%; box-sizing:border-box; padding:12px; border:1px solid #8888; border-radius:10px; font:inherit; }
+    textarea { min-height:90px; }
+    button { margin-top:16px; padding:11px 18px; border:1px solid #8886; border-radius:10px; font:inherit; font-weight:700; cursor:pointer; }
+    button:disabled { opacity:.45; cursor:not-allowed; }
+    pre { white-space:pre-wrap; word-break:break-word; padding:16px; border-radius:12px; background:#8882; }
+    .meta { display:flex; gap:10px; flex-wrap:wrap; margin:14px 0; }
+    .pill { padding:6px 10px; border-radius:999px; background:#8882; font-size:.9rem; }
+    .source { padding:14px 0; border-top:1px solid #8884; }
+    .source a { font-weight:700; }
+    .error { padding:14px; border:1px solid currentColor; border-radius:10px; }
+    .gate { margin-top:28px; padding:18px; border:1px solid #8886; border-radius:14px; }
+    .gate-actions { display:flex; flex-wrap:wrap; gap:10px; }
+    .gate-actions button { margin-top:8px; }
+    .receipt { margin-top:18px; }
+    .boundary { font-size:.92rem; opacity:.78; }
+  </style>
+</head>
+<body>
+  <h1>Diamond Evidence Gate</h1>
+  <p class="sub">Turn live web evidence into a bounded AI recommendation, then stop at a visible Human Gate. The AI can recommend; only the Human can approve, hold, or reject.</p>
+
+  <div class="grid">
+    <div>
+      <label for="q">Decision question</label>
+      <textarea id="q" placeholder="Example: Should our team enable the newly announced API capability in production this week?"></textarea>
+    </div>
+    <div>
+      <label for="action">Proposed action</label>
+      <textarea id="action" placeholder="Example: Enable the capability for one production workload after a bounded rollout."></textarea>
+    </div>
+  </div>
+
+  <label for="domains">Trusted domains (optional, comma-separated)</label>
+  <input id="domains" placeholder="docs.vendor.com, status.vendor.com" />
+  <button id="go">Build live decision brief</button>
+
+  <section id="out" hidden>
+    <div class="meta" id="meta"></div>
+    <h2>AI decision brief</h2>
+    <pre id="brief"></pre>
+    <h2>Live evidence</h2>
+    <div id="sources"></div>
+
+    <section class="gate" id="gate" hidden>
+      <h2>Human Gate</h2>
+      <p class="boundary">No action is executed. Your decision is recorded as an auditable receipt bound to this exact evidence packet.</p>
+      <label for="note">Human note (optional)</label>
+      <input id="note" placeholder="Why are you approving, holding, or rejecting?" />
+      <div class="gate-actions">
+        <button id="approve">Approve</button>
+        <button id="hold">Hold</button>
+        <button id="reject">Reject</button>
+      </div>
+      <div class="receipt" id="receipt" hidden>
+        <h3>Decision receipt</h3>
+        <pre id="receiptText"></pre>
+        <button id="downloadReceipt">Download receipt</button>
+      </div>
+    </section>
+  </section>
+
+<script>
+const go = document.getElementById('go');
+const out = document.getElementById('out');
+const gate = document.getElementById('gate');
+let currentPacket = null;
+let currentReceipt = null;
+
+go.onclick = async () => {
+  const q = document.getElementById('q').value.trim();
+  const action = document.getElementById('action').value.trim();
+  const domains = document.getElementById('domains').value.trim();
+  if (!q) return;
+  go.disabled = true; go.textContent = 'Searching live evidence…'; out.hidden = false; gate.hidden = true;
+  document.getElementById('brief').textContent = 'Working…';
+  document.getElementById('sources').innerHTML = '';
+  document.getElementById('meta').innerHTML = '';
+  document.getElementById('receipt').hidden = true;
+  try {
+    const url = '/api/assess?q=' + encodeURIComponent(q) + '&action=' + encodeURIComponent(action) + '&domains=' + encodeURIComponent(domains) + '&max=5';
+    const r = await fetch(url);
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Request failed');
+    currentPacket = data;
+    document.getElementById('brief').textContent = data.decision_brief;
+    const pills = [
+      `Gate: ${data.gate_state}`,
+      `Mode: ${data.answer_mode}`,
+      `Sources: ${data.result_count}`,
+      `Domains: ${data.unique_domain_count}`,
+      `SerpApi: ${data.serpapi_integration}`,
+      ...(data.flags || []).map(x => `Flag: ${x}`)
+    ];
+    document.getElementById('meta').innerHTML = pills.map(x => `<span class="pill">${escapeHtml(x)}</span>`).join('');
+    document.getElementById('sources').innerHTML = (data.evidence || []).map((s,i) => `
+      <div class="source"><a href="${encodeURI(s.url)}" target="_blank" rel="noreferrer">[${i+1}] ${escapeHtml(s.title)}</a>
+      <div>${escapeHtml(s.domain)}${s.date_hint ? ' · ' + escapeHtml(s.date_hint) : ''}</div>
+      <p>${escapeHtml(s.snippet || '')}</p></div>`).join('');
+    gate.hidden = false;
+    document.getElementById('approve').disabled = data.gate_state !== 'READY_FOR_HUMAN';
+  } catch (e) {
+    document.getElementById('brief').innerHTML = `<span class="error">${escapeHtml(String(e.message || e))}</span>`;
+  } finally { go.disabled = false; go.textContent = 'Build live decision brief'; }
+};
+
+async function decide(decision) {
+  if (!currentPacket) return;
+  const note = document.getElementById('note').value.trim();
+  const r = await fetch('/api/decision', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({packet_id: currentPacket.packet_id, decision, note})
+  });
+  const data = await r.json();
+  if (!r.ok) { alert(data.error || 'Decision failed'); return; }
+  currentReceipt = data;
+  document.getElementById('receiptText').textContent = JSON.stringify(data, null, 2);
+  document.getElementById('receipt').hidden = false;
+}
+
+document.getElementById('approve').onclick = () => decide('APPROVE');
+document.getElementById('hold').onclick = () => decide('HOLD');
+document.getElementById('reject').onclick = () => decide('REJECT');
+document.getElementById('downloadReceipt').onclick = () => {
+  if (!currentReceipt) return;
+  const blob = new Blob([JSON.stringify(currentReceipt, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'DIAMOND_EVIDENCE_GATE_RECEIPT.json';
+  a.click(); URL.revokeObjectURL(a.href);
+};
+
+function escapeHtml(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+</script>
+</body>
+</html>

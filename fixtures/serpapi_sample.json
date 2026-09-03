@@ -1,0 +1,27 @@
+{
+  "search_metadata": {"id": "fixture-only", "status": "Success"},
+  "search_parameters": {"engine": "google", "q": "example time-sensitive platform update"},
+  "organic_results": [
+    {
+      "position": 1,
+      "title": "Official platform update",
+      "link": "https://docs.example.com/updates/platform-change",
+      "snippet": "The platform introduced a new event-driven workflow and updated its integration behavior.",
+      "date": "2 days ago"
+    },
+    {
+      "position": 2,
+      "title": "Official integration documentation",
+      "link": "https://support.example.org/integrations/events",
+      "snippet": "Documentation describes event triggers, conditions, and delivery behavior.",
+      "date": "1 day ago"
+    },
+    {
+      "position": 3,
+      "title": "Developer reference",
+      "link": "https://developer.example.net/reference/events",
+      "snippet": "Reference material lists supported event surfaces and operational limitations.",
+      "date": "2026-09-01"
+    }
+  ]
+}

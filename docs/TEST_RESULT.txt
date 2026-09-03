@@ -1,0 +1,14 @@
+test_approve_fails_closed_when_evidence_not_ready (test_point_b.PointBTests.test_approve_fails_closed_when_evidence_not_ready) ... ok
+test_fixture_assessment_builds_packet (test_point_b.PointBTests.test_fixture_assessment_builds_packet) ... ok
+test_human_decision_receipt_never_executes_action (test_point_b.PointBTests.test_human_decision_receipt_never_executes_action) ... ok
+test_invalid_decision_rejected (test_point_b.PointBTests.test_invalid_decision_rejected) ... ok
+test_local_ai_failure_keeps_gate_review_only (test_point_b.PointBTests.test_local_ai_failure_keeps_gate_review_only) ... ok
+test_no_auto_execution_surface_in_app (test_point_b.PointBTests.test_no_auto_execution_surface_in_app) ... ok
+test_ui_contains_visible_human_gate_and_max5 (test_point_b.PointBTests.test_ui_contains_visible_human_gate_and_max5) ... ok
+test_normalize_fixture (test_search_core.SearchCoreTests.test_normalize_fixture) ... ok
+test_search_url_does_not_drop_query (test_search_core.SearchCoreTests.test_search_url_does_not_drop_query) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.007s
+
+OK
